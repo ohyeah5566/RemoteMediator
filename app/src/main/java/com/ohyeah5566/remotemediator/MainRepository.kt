@@ -6,7 +6,7 @@ import kotlinx.coroutines.delay
 
 class MainRepository {
     companion object {
-        //模擬local 有50筆資料
+        //模擬local 一開始就有50筆資料
         val list = mutableListOf<Item>().apply {
             for (i in 0..50) {
                 add(
@@ -35,7 +35,6 @@ class MainRepository {
                 LoadType.REFRESH -> {
                     //adapter剛被init的時候 會觸發一次load, type==REFRESH
                     //refresh不做事
-                    //如果local端沒資料, 之後就不會不斷的觸發load, tpye==append
                     MediatorResult.Success(false)
                 }
                 LoadType.PREPEND -> {
@@ -80,12 +79,16 @@ class MainRepository {
         val TAG = "Source"
 
         /**
-         * 單純return anchorPosition 會在資料量大>150 的時候回傳 會造成畫面抖動的Int
-         * 參考 https://github.com/android/architecture-components-samples/blob/main/PagingWithNetworkSample/app/src/main/java/com/android/example/paging/pagingwithnetwork/reddit/repository/inMemory/byPage/PageKeyedSubredditPagingSource.kt
-         * 回傳的Int就不會造成抖動 anchorPosition: 36, closestItemToPosition.id: 187 下一次load key = 187
+         * initLoad 跟 資料庫有變動後 都會getRefreshKey
          */
         override fun getRefreshKey(state: PagingState<Int, Item>): Int? {
+            //Most recently accessed index in the list, including placeholders.
+            //state.anchorPosition 最近一次存取的position or index 不太確定這邊的position指的是什麼,應該不是RecyclerView.Adapter的position 因為一直往下滑有時position反而會變小
+            //自己瞎猜可能是跟RecyclerView的recycle機制有關係吧 anchorPosition印出來看就是20-70之間不斷循環的int
             Log.d(TAG, "anchorPosition: ${state.anchorPosition}")
+
+            //可以用 state.closestItemToPosition(anchorPosition) 取得最接近該position的item
+            //取得的item的id可以當作key來使用
             return state.anchorPosition?.let {
                 Log.d(TAG, "closestItemToPosition.id: ${state.closestItemToPosition(it)?.id?.toInt()}")
                 state.closestItemToPosition(it)?.id?.toInt()
