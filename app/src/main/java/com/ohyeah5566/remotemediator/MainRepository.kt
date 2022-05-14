@@ -23,13 +23,20 @@ class MainRepository {
     @OptIn(ExperimentalPagingApi::class)
     class Mediator : RemoteMediator<Int, Item>() {
         override suspend fun load(
-            loadType: LoadType,
+            loadType: LoadType, //enum: prepend,refresh,append
             state: PagingState<Int, Item>
         ): MediatorResult {
-
-
             Log.d("Mediator", "type: ${loadType.name}")
             Log.d("Mediator", "list.size: ${list.size}")
+
+            //補一下state的用法
+            Log.d("Mediator",
+                "state.firstItem:${state.firstItemOrNull()} \n"+ //不全是id=0的資料，應該是目前adapter的第一筆資料
+            "state.lastItem:${state.lastItemOrNull()} \n"+ //可以理解成目前local的最後一筆資料(在append的情況下),也是adpater的最後一筆資料
+            "state.closetAnchorPositionItem:${state.closestItemToPosition(state.anchorPosition?:0)} \n")
+            //Page包含該data,prevKey,nextKey, itemBefore,itemAfter(前後有多少筆資料)
+//            Log.d("Mediator",state.closestPageToPosition(state.anchorPosition?:0).toString())
+
 
             return when(loadType){
                 LoadType.REFRESH -> {
@@ -45,7 +52,7 @@ class MainRepository {
                     Log.d("Mediator", "start load remote data")
                     delay(1000) //模擬load data的時間
                     //產生n筆資料, 並加入至local data
-                    list.addAll(ItemGenerator.getRemoteData(list.size))
+                    list.addAll(ItemGenerator.getRemoteData(list.size)) //可改成state.lastItem.id+1
                     //手動觸發local data已更新的訊息
                     notifyListeners()
                     MediatorResult.Success(false)
